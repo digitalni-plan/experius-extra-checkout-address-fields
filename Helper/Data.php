@@ -53,18 +53,7 @@ class Data
         $toObject,
         $fieldset='extra_checkout_billing_address_fields'
     ) {
-
-        $debugCategory = 'Experius_ExtraCheckoutAddressFields  - ';
-        if (self::IS_DEBUG) {
-            $this->logger->info(__($debugCategory . 'fieldset: %s', $fieldset));
-            $this->logger->info(__($debugCategory . 'fromObject class: %s', get_class($fromObject)));
-        }
-
         foreach ($this->getExtraCheckoutAddressFields($fieldset) as $extraField) {
-
-            if (self::IS_DEBUG) {
-                $this->logger->info(__($debugCategory . 'extraField: %s', $extraField));
-            }
 
             $set = 'set' . str_replace(' ', '', ucwords(str_replace('_', ' ', $extraField)));
             $get = 'get' . str_replace(' ', '', ucwords(str_replace('_', ' ', $extraField)));
@@ -86,10 +75,6 @@ class Data
             }
 
             $value = $fromObject->$get();
-
-            if (self::IS_DEBUG) {
-                $this->logger->info($debugCategory . 'value set: %s', $value);
-            }
 
             try {
                 $toObject->$set($value);
