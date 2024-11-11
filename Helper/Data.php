@@ -7,34 +7,19 @@ declare(strict_types=1);
 
 namespace Experius\ExtraCheckoutAddressFields\Helper;
 
-use Magento\Framework\App\Helper\AbstractHelper;
+use Exception;
 use Magento\Framework\DataObject\Copy\Config;
 use Psr\Log\LoggerInterface;
 
-class Data extends AbstractHelper
+class Data
 {
-    /**
-     * @var Config
-     */
-    protected $fieldsetConfig;
+    public const IS_DEBUG = FALSE;
 
-    /**
-     * @var LoggerInterface
-     */
-    protected $logger;
-
-    /**
-     * Data constructor.
-     *
-     * @param Config $fieldsetConfig
-     * @param LoggerInterface $logger
-     */
     public function __construct(
-        Config $fieldsetConfig,
-        LoggerInterface $logger
+        protected Config $fieldsetConfig,
+        protected LoggerInterface $logger
     ) {
-        $this->fieldsetConfig = $fieldsetConfig;
-        $this->logger = $logger;
+
     }
 
     /**
@@ -42,7 +27,7 @@ class Data extends AbstractHelper
      * @param string $root
      * @return array
      */
-    public function getExtraCheckoutAddressFields($fieldset='extra_checkout_billing_address_fields', $root='global')
+    public function getExtraCheckoutAddressFields($fieldset='extra_checkout_billing_address_fields', $root='global'): array
     {
         $fields = $this->fieldsetConfig->getFieldset($fieldset, $root);
 
@@ -68,14 +53,47 @@ class Data extends AbstractHelper
         $toObject,
         $fieldset='extra_checkout_billing_address_fields'
     ) {
+
+        $debugCategory = 'Experius_ExtraCheckoutAddressFields  - ';
+        if (self::IS_DEBUG) {
+            $this->logger->info(__($debugCategory . 'fieldset: %s', $fieldset));
+            $this->logger->info(__($debugCategory . 'fromObject class: %s', get_class($fromObject)));
+        }
+
         foreach ($this->getExtraCheckoutAddressFields($fieldset) as $extraField) {
+
+            if (self::IS_DEBUG) {
+                $this->logger->info(__($debugCategory . 'extraField: %s', $extraField));
+            }
+
             $set = 'set' . str_replace(' ', '', ucwords(str_replace('_', ' ', $extraField)));
             $get = 'get' . str_replace(' ', '', ucwords(str_replace('_', ' ', $extraField)));
 
+            try {
+                if (
+                    $fieldset == 'extra_checkout_billing_address_fields'
+                    && method_exists($fromObject, 'getQuote')
+                    && $fromObject->getQuote()
+                    && $fromObject->getQuote()->getShippingAddress()
+                ) {
+                    $shippingSameAsBilling = $fromObject->getQuote()->getShippingAddress()->getSameAsBilling();
+                    if ($shippingSameAsBilling) {
+                        $fromObject = $fromObject->getQuote()->getShippingAddress();
+                    }
+                }
+            } catch (Exception $e) {
+
+            }
+
             $value = $fromObject->$get();
+
+            if (self::IS_DEBUG) {
+                $this->logger->info($debugCategory . 'value set: %s', $value);
+            }
+
             try {
                 $toObject->$set($value);
-            } catch (\Exception $e) {
+            } catch (Exception $e) {
                 $this->logger->critical($e->getMessage());
             }
         }
